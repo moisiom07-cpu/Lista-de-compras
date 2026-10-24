@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lista de compras</title>
+<style>
+:root{--bg:#faf8f5;--card:#fff;--tx:#1f1b16;--mut:#7a7167;--line:#e8e2da;--acc:#d9480f;--ok:#2f9e44;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17140f;--card:#221e18;--tx:#f3ede4;--mut:#a39a8d;--line:#352f27;--acc:#ff8a4c;--ok:#69db7c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#17140f;--card:#221e18;--tx:#f3ede4;--mut:#a39a8d;--line:#352f27;--acc:#ff8a4c;--ok:#69db7c;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 110px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.35}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:9;padding:12px 16px 10px;border-bottom:1px solid var(--line)}
+h1{font-size:20px;margin:0 0 8px}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .25s}
+.meta{display:flex;justify-content:space-between;font-size:13px;color:var(--mut);margin:6px 0 10px}
+.tabs{display:flex;gap:6px}
+.tabs button{flex:1;padding:9px 6px;border:1px solid var(--line);background:var(--card);color:var(--tx);border-radius:10px;font-size:14px;font-weight:600}
+.tabs button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+main{padding:12px 16px 40px;max-width:640px;margin:0 auto}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:14px;overflow:hidden}
+section h2{margin:0;padding:11px 14px;font-size:15px;display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+section h2 small{font-weight:500;color:var(--mut);font-size:12px;white-space:nowrap}
+label.it{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+label.it:last-child{border-bottom:0}
+input[type=checkbox]{width:24px;height:24px;margin:1px 0 0;accent-color:var(--ok);flex:none}
+.tx{flex:1;min-width:0}
+.nm{font-size:16px}
+.qt{font-size:13px;color:var(--mut);margin-top:2px}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;margin-top:5px;margin-right:4px;background:hsl(var(--h) 80% 90%);color:hsl(var(--h) 60% 25%)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill{background:hsl(var(--h) 35% 24%);color:hsl(var(--h) 80% 85%)}}
+:root[data-theme="dark"] .pill{background:hsl(var(--h) 35% 24%);color:hsl(var(--h) 80% 85%)}
+label.it.done .nm{text-decoration:line-through;color:var(--mut)}
+label.it.done{opacity:.65}
+.reset{display:block;margin:6px auto 0;background:none;border:1px solid var(--line);color:var(--mut);padding:9px 16px;border-radius:10px;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+<h1>🛒 Lista de compras</h1>
+<div class="bar"><i id="bar"></i></div>
+<div class="meta"><span id="cnt"></span><span>Atacadista · 2 pessoas · est. R$ 240–332</span></div>
+<div class="tabs"><button id="t-setor" class="on">Por setor</button><button id="t-rec">Por receita</button></div>
+</header>
+<main id="app"></main>
+<main style="padding-top:0"><button class="reset" id="reset">Limpar marcações</button></main>
+<script>
+var R={1:{n:'Chicken Roll & Salada de Frango',e:'🥪',p:'R$ 38–52',h:35},
+2:{n:'Drink “Pau nas Coxas”',e:'🍷',p:'R$ 32–45',h:340},
+3:{n:'Croquetes de Frango Alfredo',e:'🍗',p:'R$ 30–42',h:48},
+4:{n:'Picanha Gratinada com Queijo',e:'🥩',p:'R$ 85–115',h:5},
+5:{n:'Churrasco Completo a 2',e:'🔥',p:'R$ 55–78',h:18}};
+var S=['Açougue','Hortifrúti','Laticínios e frios','Padaria','Mercearia e temperos','Molhos e condimentos','Bebidas','Congelados','Bazar'];
+var SI={'Açougue':'🥩','Hortifrúti':'🥬','Laticínios e frios':'🧀','Padaria':'🍞','Mercearia e temperos':'🧂','Molhos e condimentos':'🥫','Bebidas':'🍷','Congelados':'🧊','Bazar':'🪵'};
+// [recipe, nome, quantidade, setor]
+var I=[
+[1,'Peito de frango (sassami)','400 g','Açougue'],
+[1,'Pão brioche hot dog / roll','1 pacote (4 un)','Padaria'],
+[1,'Pepino japonês','½ unidade','Hortifrúti'],
+[1,'Cebola roxa','½ unidade','Hortifrúti'],
+[1,'Alho-poró e cebolinha','½ talo + ½ maço','Hortifrúti'],
+[1,'Cream cheese light (President)','1 pote (150 g)','Laticínios e frios'],
+[1,'Limão taiti','1 unidade','Hortifrúti'],
+[1,'Mostarda','1 frasco','Molhos e condimentos'],
+[2,'Vinho tinto (seco ou suave)','1 garrafa (750 ml)','Bebidas'],
+[2,'Leite condensado','1 caixinha (395 g)','Mercearia e temperos'],
+[2,'Limão taiti','2 unidades','Hortifrúti'],
+[2,'Saco de gelo','1 saco (2 kg)','Congelados'],
+[3,'Peito de frango (sassami)','400 g','Açougue'],
+[3,'Queijo mussarela ralado','150 g','Laticínios e frios'],
+[3,'Creme de leite','1 caixinha (200 g)','Laticínios e frios'],
+[3,'Farinha panko','1 pacote','Mercearia e temperos'],
+[3,'Manteiga','50 g','Laticínios e frios'],
+[4,'Picanha bovina','700 g (1 peça pequena)','Açougue'],
+[4,'Queijo mussarela','200 g','Laticínios e frios'],
+[4,'Queijo parmesão ralado','100 g','Laticínios e frios'],
+[4,'Alho','1 cabeça','Hortifrúti'],
+[4,'Margarina','50 g','Laticínios e frios'],
+[4,'Sal de parrilha com chimichurri','1 frasco ou saco pequeno','Mercearia e temperos'],
+[4,'Alecrim e cheiro-verde','1 maço de cada','Hortifrúti'],
+[5,'Linguiça toscana','200 g (~3 gomos)','Açougue'],
+[5,'Espetos de queijo coalho','1 pacote (2 a 4 espetos)','Laticínios e frios'],
+[5,'Pão de alho pronto','1 pacote (400 g)','Padaria'],
+[5,'Tomates e cebola (vinagrete)','2 tomates + 1 cebola','Hortifrúti'],
+[5,'Farofa pronta temperada','1 pacote (200 g)','Mercearia e temperos'],
+[5,'Maionese light','1 pote ou sachê','Molhos e condimentos'],
+[5,'Carvão vegetal','1 saco (2 ou 3 kg)','Bazar']
+];
+var KEY='lista-compras-v1',done={},view='setor';
+try{var s=JSON.parse(localStorage.getItem(KEY)||'{}');if(s&&typeof s==='object'){done=s.d||{};view=s.v||'setor'}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({d:done,v:view}))}catch(e){}}
+function row(i,tag){var d=I[i],ck=done[i]?' checked':'';
+ return '<label class="it'+(done[i]?' done':'')+'"><input type="checkbox" data-i="'+i+'"'+ck+'><div class="tx"><div class="nm">'+d[1]+'</div><div class="qt">'+d[2]+'</div>'+tag+'</div></label>'}
+function recPill(r){return '<span class="pill" style="--h:'+R[r].h+'">'+R[r].e+' '+R[r].n+'</span>'}
+function sec(title,small,rows,n,t){return '<section><h2><span>'+title+'</span><small>'+n+'/'+t+(small?' · '+small:'')+'</small></h2>'+rows+'</section>'}
+function render(){
+ var h='',n,t;
+ if(view==='setor'){
+  S.forEach(function(s){var idx=[];I.forEach(function(d,i){if(d[3]===s)idx.push(i)});if(!idx.length)return;
+   n=idx.filter(function(i){return done[i]}).length;
+   h+=sec(SI[s]+' '+s,'',idx.map(function(i){return row(i,recPill(I[i][0]))}).join(''),n,idx.length)})
+ }else{
+  Object.keys(R).forEach(function(r){var idx=[];I.forEach(function(d,i){if(d[0]==r)idx.push(i)});
+   n=idx.filter(function(i){return done[i]}).length;
+   h+=sec(R[r].e+' '+R[r].n,R[r].p,idx.map(function(i){return row(i,'<span class="pill" style="--h:'+R[r].h+'">'+SI[I[i][3]]+' '+I[i][3]+'</span>')}).join(''),n,idx.length)})
+ }
+ document.getElementById('app').innerHTML=h;
+ var total=I.length,dn=Object.keys(done).filter(function(k){return done[k]}).length;
+ document.getElementById('bar').style.width=(dn/total*100)+'%';
+ document.getElementById('cnt').textContent=dn+' de '+total+' itens';
+ document.getElementById('t-setor').className=view==='setor'?'on':'';
+ document.getElementById('t-rec').className=view==='rec'?'on':'';
+}
+document.getElementById('app').addEventListener('change',function(e){var i=e.target.getAttribute('data-i');if(i===null)return;
+ if(e.target.checked)done[i]=1;else delete done[i];save();
+ var y=window.scrollY;render();window.scrollTo(0,y)});
+document.getElementById('t-setor').onclick=function(){view='setor';save();render();window.scrollTo(0,0)};
+document.getElementById('t-rec').onclick=function(){view='rec';save();render();window.scrollTo(0,0)};
+document.getElementById('reset').onclick=function(){if(confirm('Limpar todas as marcações?')){done={};save();render()}};
+render();
+</script>
+</body>
+</html>
